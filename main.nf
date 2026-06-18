@@ -84,8 +84,7 @@ process preprocess_sp095 {
 
 process add_sp095_clusters {
 	input:
-	tuple path(sp100_members), val(genome_type), val(cluster_type)
-	path(sp095_members)
+	tuple path(sp095_members), path(sp100_members), val(genome_type), val(cluster_type)	
 
 	output:
 	tuple path("SP100_members.${genome_type}.${cluster_type}.with_sp095.tsv"), val(genome_type), val(cluster_type), emit: sp100
@@ -125,6 +124,23 @@ process add_sp095_clusters {
 	"""
 }
 
+process merge_isolate_clustertypes {
+	input:
+	path(files)
+
+	output:
+	tuple path("SP100_isolate_clusters.tsv"), val("isolates"), emit: sp100
+	
+	script:
+	"""
+	set -e -o pipefail
+	mkdir -p tmp/
+
+	sort -T tmp/ -m -k1,1 ${files} > SP100_isolate_clusters.tsv
+	"""
+
+
+}
 
 
 
@@ -141,8 +157,11 @@ workflow {
 	preprocess_sp095(sp095_ch)
 
 	add_sp095_clusters(
-		split_by_clustersize.out.non_singletons.mix(split_by_clustersize.out.singletons),
-		preprocess_sp095.out.sp095
+		preprocess_sp095.out.sp095.combine(split_by_clustersize.out.non_singletons.mix(split_by_clustersize.out.singletons)),		
+	)
+
+	merge_isolate_clustertypes(
+		add_sp095_clusters.out.sp100.filter { it[1] == "isolates" }
 	)
 
 }
