@@ -5,6 +5,7 @@ params.sp095_members = "/g/scb2/bork/ckim/HGT_MGE_project_v3/2.linclust/SP095/SP
 process preprocess_sp100 {
 	// this removes the count column 2 and the SP100_ prefixes including any padding zeroes
 	// -> file size reduction -> quicker file ops
+	// then, it splits sp100 into isolate and mag sets
 
 	input:
 	path(sp100_members)
@@ -26,12 +27,14 @@ process preprocess_sp100 {
 }
 
 process split_by_clustersize {
+	// splits sp100 <genometype> into isolate/non-isolate cluster sets
+
 	input:
 	tuple path(sp100_members), val(genome_type)
 
 	output:
-	path("*.singletons.tsv"), emit: singletons
-	path("*.non_singletons.tsv"), emit: non_singletons
+	tuple path("*.singletons.tsv"), val(genome_type), val("singleton"), emit: singletons
+	tuple path("*.non_singletons.tsv"), val(genome_type), val("non_singleton"), emit: non_singletons
 
 	script:
 	"""
@@ -42,7 +45,8 @@ process split_by_clustersize {
 	 'NF==1 { print \$0 >> "singletons.txt"; next; } \
 	  NF==2 && \$2="" { print \$1 >> "singletons.txt"; next; } \
 	  { print \$0 >> "non_singletons.txt"; } \
-	  END { close("non_singletons.txt"); close("singletons.txt"); }
+	  END { close("non_singletons.txt"); close("singletons.txt"); } \
+	 '
 
 	sort -T tmp/ -k1,1 singletons.txt > SP100_members.${genome_type}.singletons.tsv
 	sort -T tmp/ -k1,1 non_singletons.txt > SP100_members.${genome_type}.non_singletons.tsv
@@ -51,12 +55,6 @@ process split_by_clustersize {
 	"""
 
 }
-
-
-
-
-
-
 
 process preprocess_sp095 {
 	// this removes the count columns 2,3 and the SP100_/SP095_ prefixes including any padding zeroes,
@@ -67,7 +65,7 @@ process preprocess_sp095 {
 	path(sp095_members)
 
 	output:
-	path("SP095_members.short.linear.by_sp095.tsv"), emit: sp095
+	path("SP095_members.short.linear.by_sp100.tsv"), emit: sp095
 
 	script:
 	"""
@@ -76,15 +74,55 @@ process preprocess_sp095 {
 
 	awk -v OFS='\\t' '{ print gensub(/^SP095_0*([0-9]+)/, "\\\\1", "g", \$1),gensub(/SP100_0*([0-9]+)/, "\\\\1", "g", \$4); }' ${sp095_members} > SP095_members.short.tsv
 	awk -v OFS='\\t' '{ split(\$2,a,";"); for (i in a) { print a[i],\$1; }; }' SP095_members.short.tsv > SP095_members.short.tsv.linear
-	sort -T tmp/ -k1,1 SP095_members.short.tsv.linear > SP095_members.short.linear.by_sp095.tsv
+	sort -T tmp/ -k1,1 SP095_members.short.tsv.linear > SP095_members.short.linear.by_sp100.tsv
 
 	rm -fv SP095_members.short.tsv SP095_members.short.tsv.linear
 	"""
-	
-
-
-
 }
+
+process add_sp095_clusters {
+	input:
+	tuple path(sp100_members), val(genome_type), val(cluster_type)
+	path(sp095_members)
+
+	output:
+	tuple path("SP100_members.${genome_type}.${cluster_type}.with_sp095.tsv"), val(genome_type), val(cluster_type), emit: sp100
+
+	script:
+	def csubtype_cmd = ""
+	def sort_cmd = ""
+	if (genome_type == "isolates") {
+		if (cluster_type == "non_singleton") {
+			csubtype_cmd += """awk -F '\\t' -v OFS='\\t' '{n=split(\$3,a,";"); if (n==2 && a[2]=="") ctype="S"; else ctype="N"; for (i in a) { if (a[i] != "") print a[i],\$1,\$2,ctype;}}'"""
+			sort_cmd += """sort -k1,1 -k2,2 -k3,3 -T tmp/"""
+		} else {
+			csubtype_cmd += """awk -v OFS='\\t' '{ split(\$3,a,";"); for (i in a) { print a[i],\$1,\$2,"U"; }; }'"""
+			sort_cmd += """sort -k1,1"""
+		}
+	} else {
+		if (cluster_type == "non_singleton") {
+			csubtype_cmd += """awk -F '\\t' -v OFS='\\t' '{n=split(\$3,a,";"); ctype="N"; for (i in a) { if (a[i] != "") print a[i],\$1,\$2,ctype;}}'"""
+			sort_cmd += """sort -k1,1 -k2,2 -k3,3 -T tmp/"""
+		} else {
+			csubtype_cmd += """awk -v OFS='\\t' '{ split(\$3,a,";"); for (i in a) { print a[i],\$1,\$2,"S"; }; }'"""
+			sort_cmd += """sort -k1,1"""
+		}
+	}
+
+	"""
+	set -e -o pipefail
+	mkdir -p tmp/
+
+	join -1 1 -2 1 -o 1.1,2.2,1.2 ${sp100_members} ${sp095_members} | tr " " "\t" > with_sp095.tsv
+
+	${csubtype_cmd} with_sp095.tsv > with_sp095.tsv.1
+
+	${sort_cmd} with_sp095.tsv.1 > SP100_members.${genome_type}.${cluster_type}.with_sp095.tsv
+
+	rm -fv with_sp095.tsv*
+	"""
+}
+
 
 
 
@@ -95,11 +133,15 @@ workflow {
 	sp100_ch = Channel.fromPath(params.sp100_members)
 	preprocess_sp100(sp100_ch)
 
-	// remove_mag_genes(preprocess_sp100.out.sp100)
 	split_by_clustersize(preprocess_sp100.out.isolates.mix(preprocess_sp100.out.mags))
 
 	sp095_ch = Channel.fromPath(params.sp095_members)
 	preprocess_sp095(sp095_ch)
+
+	add_sp095_clusters(
+		split_by_clustersize.out.non_singletons.mix(split_by_clustersize.out.singletons),
+		preprocess_sp095.out.sp095
+	)
 
 }
 

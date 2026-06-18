@@ -55,7 +55,7 @@ if [[ ! -f SP095_JOIN_DONE ]]; then
 	# SP100_members.short.no_isolates_no_isolate_singletons.tsv.mag_clusters.tsv.sorted
 	# SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv.sorted
 	# SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv.sorted
-	echo "join sp095 -> sp100"
+	# echo "join sp095 -> sp100"
 	for f in SP100_members.short.*.tsv.sorted; do
 		join -1 1 -2 1 -o 1.1,2.2,1.2 $f SP095_members.short.tsv.linear.sorted | tr " " "\t" > $f.with_sp095 &
 	done
