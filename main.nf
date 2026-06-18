@@ -129,7 +129,8 @@ process merge_isolate_clustertypes {
 	path(files)
 
 	output:
-	tuple path("SP100_isolate_clusters.tsv"), val("isolates"), emit: sp100
+	tuple path("SP100_isolate_clusters.tsv"), val("isolates"), emit: sp100_isolates
+	tuple path("SP100_isolate_clusters.tsv.by_sp100"), val("isolates"), emit: sp100_isolates_bysp100
 	
 	script:
 	"""
@@ -137,12 +138,33 @@ process merge_isolate_clustertypes {
 	mkdir -p tmp/
 
 	sort -T tmp/ -m -k1,1 ${files} > SP100_isolate_clusters.tsv
+	sort -T tmp/ -k2,2 SP100_isolate_clusters.tsv > SP100_isolate_clusters.tsv.by_sp100
 	"""
-
-
 }
 
+process correct_mag_singleton_clustertype {
+	input:
+	tuple path(mag_singletons), path(isolate_clusters_bysp100)
 
+	output:
+	path("SP100_members.mags.singletons.corrected_ctype.tsv"), emit: sp100_mag_singletons
+
+	script:
+	"""
+	set -e -o pipefail
+	mkdir -p tmp/
+
+	sort -T tmp/ -k2,2 ${mag_singletons} > mag_singletons.by_sp100
+
+	join -1 2 -2 2 -o 1.1,1.2,1.3,1.4,2.1 -a 1 mag_singletons.by_sp100 ${isolate_clusters_bysp100} | awk -v OFS='\\t' 'NF==4 { \$4="U" } { print \$0}' | cut -f 1-4 > SP100_members.mags.singletons.corrected_ctype.tsv
+	
+	"""
+	// join -1 1 -2 1 -a 2 -o 2.1,2.2,2.3,1.2 SP100_clusters_with_isolates.tsv.with_ctype SP100_members.short.no_isolates_no_isolate_singletons.mag_singletons.tsv.sorted.with_sp095 | tr " " "\t" | 
+	// awk -v OFS='\t' 'NF==3 { $4="U" } { print $0 }' > SP100_members.short.no_isolates_no_isolate_singletons.mag_singletons.tsv.sorted.with_sp095.with_ctype
+	// isolates: GCA_000003215_00074	341723245	234754752	U
+	// mags: GD_MAG_0000000_10_12	1179883448	108643454	S
+	
+}
 
 
 
@@ -165,6 +187,15 @@ workflow {
 			.filter { it[1] == "isolates" }
 			.map { it -> it[0] }
 			.collect()
+	)
+
+	correct_mag_singleton_clustertype(
+		add_sp095_clusters.out.sp100
+			.filter { it[1] == "mags" && it[2] == "singletons" }
+			.map { it -> it[0] }
+			.combine(merge_isolate_clustertypes.out.sp100_isolates_bysp100.map { it -> it[0] })
+
+		// tuple path(mag_singletons), path(isolate_clusters_bysp100)
 	)
 
 }
