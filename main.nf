@@ -164,7 +164,7 @@ workflow {
 		add_sp095_clusters.out.sp100
 			.filter { it[1] == "isolates" }
 			.map { it -> it[0] }
-
+			.collect()
 	)
 
 }
