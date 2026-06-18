@@ -11,8 +11,8 @@ process preprocess_sp100 {
 
 	output:
 	path("SP100_members.short.tsv"), emit: sp100
-	tuple path("SP100_members.short.tsv.isolates"), val("isolates"), emit: sp100_isolates
-	tuple path("SP100_members.short.tsv.mags"), val("mags"), emit: sp100_mags
+	tuple path("SP100_members.short.tsv.isolates"), val("isolates"), emit: isolates
+	tuple path("SP100_members.short.tsv.mags"), val("mags"), emit: mags
 
 	script:
 	"""
