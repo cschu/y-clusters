@@ -41,7 +41,7 @@ process split_by_clustersize {
 
 	awk -F ';' \
 	 'NF==1 { print \$0 >> "singletons.txt"; next; } \
-	  NF==2 && $2="" { print \$1 >> "singletons.txt"; next; } \
+	  NF==2 && \$2="" { print \$1 >> "singletons.txt"; next; } \
 	  { print \$0 >> "non_singletons.txt"; } \
 	  END { close("non_singletons.txt"); close("singletons.txt"); }
 
