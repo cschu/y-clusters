@@ -27,8 +27,7 @@ process preprocess_sp100 {
 
 process split_by_clustersize {
 	input:
-	path(sp100_members)
-	val(genome_type)
+	tuple path(sp100_members), val(genome_type)
 
 	output:
 	path("*.singletons.tsv"), emit: singletons
