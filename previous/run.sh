@@ -8,16 +8,16 @@ SP095_MEMBERS=/g/scb2/bork/ckim/HGT_MGE_project/HGT_MGE_project_re/2.linclust/SP
 ## PREPARE SP100
 
 if [[ ! -s SP100_members.short.tsv ]]; then
-	echo "shrink sp100 cluster ids, remove cluster size column (2)"
+	# echo "shrink sp100 cluster ids, remove cluster size column (2)"
 	awk -v OFS='\t' '{ print gensub(/^SP100_0*([0-9]+)/, "\\1", "g", $1),$3; }' ${SP100_MEMBERS} > SP100_members.short.tsv
 	chmod a-w SP100_members.short.tsv
 fi
 
 if [[ ! -f CLUSTER_SORT_STAGE_DONE ]]; then
-	echo "remove SPIRE (=MAG) genes and (now) empty SPIRE singleton clusters"
+	# echo "remove SPIRE (=MAG) genes and (now) empty SPIRE singleton clusters"
 	sed "s/GD_MAG_[0-9]\+_[0-9]\+_[0-9]\+;\?//g" SP100_members.short.tsv | awk -v OFS='\t' 'NF>1 { print $0 }' | awk -F ';' 'NF==1 { print $0 >> "SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv"; next; } NF==2 && $2="" { print $1 >> "SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv"; next; } { print $0 >> "SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv" } END { close("SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv"); close("SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv") }'
 
-	echo sort sp100 singletons / clusters
+	# echo sort sp100 singletons / clusters
 	sort -k1,1 SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv > SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv.sorted &
 	sort -k1,1 SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv > SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv.sorted &
 
@@ -37,14 +37,14 @@ fi
 ## PREPARE SP095
 
 if [[ ! -s SP095_members.short.tsv.linear.sorted ]]; then
-	echo "shrink sp095/sp100 cluster ids, remove size columns (2,3)"
+	# echo "shrink sp095/sp100 cluster ids, remove size columns (2,3)"
 	awk -v OFS='\t' '{ print gensub(/^SP095_0*([0-9]+)/, "\\1", "g", $1),gensub(/SP100_0*([0-9]+)/, "\\1", "g", $4); }' ${SP095_MEMBERS} > SP095_members.short.tsv
 	chmod a-w SP095_members.short.tsv
 
-	echo "linearize sp095 -> sp100\\tsp095"
+	# echo "linearize sp095 -> sp100\\tsp095"
 	awk -v OFS='\t' '{ split($2,a,";"); for (i in a) { print a[i],$1; }; }' SP095_members.short.tsv > SP095_members.short.tsv.linear
 
-	echo "sort sp095"
+	# echo "sort sp095"
 	sort -k1,1 SP095_members.short.tsv.linear > SP095_members.short.tsv.linear.sorted
 	chmod a-w SP095_members.short.tsv.linear.sorted
 fi
@@ -67,22 +67,22 @@ fi
 
 
 if [[ ! -s SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv.sorted.with_sp095.by_gene ]]; then
-	echo "add gene cluster type and unravel non-singletons"
+	# echo "add gene cluster type and unravel non-singletons"
 	awk -F '\t' -v OFS='\t' '{n=split($3,a,";"); if (n==2 && a[2]=="") ctype="S"; else ctype="N"; for (i in a) { if (a[i] != "") print a[i],$1,$2,ctype;}}' SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv.sorted.with_sp095 > SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv.sorted.with_sp095.by_gene
 fi
 
 if [[ ! -s SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv.sorted.with_sp095.by_gene ]]; then 
-	echo "add gene cluster type and unravel singletons"
+	# echo "add gene cluster type and unravel singletons"
 	awk -v OFS='\t' '{ split($3,a,";"); for (i in a) { print a[i],$1,$2,"U"; }; }' SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv.sorted.with_sp095 > SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv.sorted.with_sp095.by_gene
 fi
 
 if [[ ! -s pg3_genes_with_sp100_and_sp095.txt ]]; then 
-	echo "sort isolate data"
+	# echo "sort isolate data"
 	sort -k1,1 SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv.sorted.with_sp095.by_gene > SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv.sorted.with_sp095.by_gene.sorted &
 	sort -k1,1 -k2,2 -k3,3 SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv.sorted.with_sp095.by_gene > SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv.sorted.with_sp095.by_gene.sorted &
 	wait
 
-	echo "merge isolate data"
+	# echo "merge isolate data"
 	sort -k1,1 -m SP100_members.short.no_mags_no_mag_singletons.isolate_clusters.tsv.sorted.with_sp095.by_gene.sorted SP100_members.short.no_mags_no_mag_singletons.isolate_singletons.tsv.sorted.with_sp095.by_gene.sorted > pg3_genes_with_sp100_and_sp095.txt
 	chmod a-w pg3_genes_with_sp100_and_sp095.txt
 fi
