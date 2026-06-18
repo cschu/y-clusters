@@ -46,7 +46,9 @@ process split_by_clustersize {
 	  NF==2 && \$2="" { print \$1 >> "singletons.txt"; next; } \
 	  { print \$0 >> "non_singletons.txt"; } \
 	  END { close("non_singletons.txt"); close("singletons.txt"); } \
-	 '
+	 ' ${sp100_members}
+
+	touch singletons.txt non_singletons.txt
 
 	sort -T tmp/ -k1,1 singletons.txt > SP100_members.${genome_type}.singletons.tsv
 	sort -T tmp/ -k1,1 non_singletons.txt > SP100_members.${genome_type}.non_singletons.tsv
