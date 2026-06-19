@@ -160,7 +160,7 @@ process correct_mag_singleton_clustertype {
 
 	sort -T tmp/ -k1,1 mag_singletons.by_gene > SP100_members.mags.singletons.corrected_ctype.tsv
 	
-	rf -fv mag_singletons.by_sp100 mag_singletons.by_gene
+	rm -fv mag_singletons.by_sp100 mag_singletons.by_gene
 	"""
 	// join -1 1 -2 1 -a 2 -o 2.1,2.2,2.3,1.2 SP100_clusters_with_isolates.tsv.with_ctype SP100_members.short.no_isolates_no_isolate_singletons.mag_singletons.tsv.sorted.with_sp095 | tr " " "\t" | 
 	// awk -v OFS='\t' 'NF==3 { $4="U" } { print $0 }' > SP100_members.short.no_isolates_no_isolate_singletons.mag_singletons.tsv.sorted.with_sp095.with_ctype
