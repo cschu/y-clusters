@@ -209,11 +209,15 @@ workflow {
 			.collect()
 	)
 
-	correct_mag_singleton_clustertype(
-		add_sp095_clusters.out.sp100
+	mag_singletons_ch = add_sp095_clusters.out.sp100
 			.filter { it[1] == "mags" && it[2] == "singletons" }
 			.map { it -> it[0] }
 			.combine(merge_isolate_clustertypes.out.sp100_isolates_bysp100.map { it -> it[0] })
+
+	mag_singletons_ch.dump(pretty: true, tag: "mag_singletons_ch")
+
+	correct_mag_singleton_clustertype(
+		mag_singletons_ch
 
 		// tuple path(mag_singletons), path(isolate_clusters_bysp100)
 	)
