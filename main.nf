@@ -1,5 +1,22 @@
 params.sp100_members = "/g/scb2/bork/ckim/HGT_MGE_project_v3/1.combine_SPIRE/SP100/SP100_members.tsv"
 params.sp095_members = "/g/scb2/bork/ckim/HGT_MGE_project_v3/2.linclust/SP095/SP095_members.tsv"
+params.contig_map = "/g/scb2/bork/ckim/HGT_MGE_project_v3/data/SPIRE_contig_mapping.tsv"
+
+process create_contig2ycontig_map {
+	input:
+	path(contig_data)
+
+	output:
+	path("contig2ycontig.txt")
+
+	script:
+	"""
+	set -e -o pipefail
+	mkdir -p tmp/
+
+	awk -v OFS='\\t' '{ printf("%s:%s\\t%s\n", \$1, \$2, \$3); }' ${contig_data} | sort -T tmp/ -k1,1 > contig2ycontig.txt
+	"""
+}
 
 
 process preprocess_sp100 {
@@ -197,6 +214,12 @@ workflow {
 
 	sp095_ch = Channel.fromPath(params.sp095_members)
 	preprocess_sp095(sp095_ch)
+
+	contig_data_ch = Channel.fromPath(params.contig_map)
+	create_contig2ycontig_map(contig_data_ch)
+
+
+
 
 	add_sp095_clusters(
 		preprocess_sp095.out.sp095.combine(split_by_clustersize.out.non_singletons.mix(split_by_clustersize.out.singletons)),		
