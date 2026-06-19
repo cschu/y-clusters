@@ -6,7 +6,7 @@ params.spire_bins = "/g/bork6/schudoma/projects/mge/y_spire_bins.txt.bin_data"
 params.spire_contigs = "/g/bork6/schudoma/projects/mge/spire_contigs.txt.y"
 params.spire_genes = "/g/bork6/schudoma/projects/mge/spire_genes.txt.y10k"
 
-params.spire_speci_info = "/g/bork6/tmp/schudoma/promge2_recovery/pg3_sp95/spire_speci_info.txt"
+params.spire_speci_info = "/g/bork6/tmp/schudoma/promge2_recovery/spire_speci_info.txt"
 
 
 
