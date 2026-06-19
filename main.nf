@@ -138,7 +138,7 @@ process merge_isolate_clustertypes {
 	mkdir -p tmp/
 
 	sort -T tmp/ -m -k1,1 ${files} > SP100_isolate_clusters.tsv
-	sort -T tmp/ -k2,2 SP100_isolate_clusters.tsv > SP100_isolate_clusters.tsv.by_sp100
+	cut -f 2,4 SP100_isolate_clusters.tsv | sort -T tmp/ -k1,1 -u > SP100_isolate_clusters.tsv.by_sp100	
 	"""
 }
 
@@ -156,7 +156,7 @@ process correct_mag_singleton_clustertype {
 
 	sort -T tmp/ -k2,2 ${mag_singletons} > mag_singletons.by_sp100
 
-	join -1 2 -2 2 -o 1.1,1.2,1.3,1.4,2.1 -a 1 mag_singletons.by_sp100 ${isolate_clusters_bysp100} | awk -v OFS='\\t' 'NF==4 { \$4="U" } { print \$0}' | cut -f 1-4 > mag_singletons.by_gene
+	join -1 2 -2 1 -o 1.1,1.2,1.3,1.4,2.2 -a 1 mag_singletons.by_sp100 ${isolate_clusters_bysp100} | awk -v OFS='\\t' 'NF==4 { \$4="U" } { print \$0 }' | cut -f 1-4 > mag_singletons.by_gene
 
 	sort -T tmp/ -k1,1 mag_singletons.by_gene > SP100_members.mags.singletons.corrected_ctype.tsv
 	
