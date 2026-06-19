@@ -14,7 +14,7 @@ process create_contig2ycontig_map {
 	set -e -o pipefail
 	mkdir -p tmp/
 
-	awk -v OFS='\\t' '{ printf("%s:%s\\t%s\n", \$1, \$2, \$3); }' ${contig_data} | sort -T tmp/ -k1,1 > contig2ycontig.txt
+	awk -v OFS='\\t' '{ printf("%s:%s\\t%s\\n", \$1, \$2, \$3); }' ${contig_data} | sort -T tmp/ -k1,1 > contig2ycontig.txt
 	"""
 }
 
