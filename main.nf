@@ -210,7 +210,7 @@ workflow {
 	)
 
 	mag_singletons_ch = add_sp095_clusters.out.sp100
-			.filter { it[1] == "mags" && it[2] == "singletons" }
+			.filter { it[1] == "mags" && it[2] == "singleton" }
 			.map { it -> it[0] }
 			.combine(merge_isolate_clustertypes.out.sp100_isolates_bysp100.map { it -> it[0] })
 
@@ -224,7 +224,7 @@ workflow {
 
 	merge_mag_clustertypes(
 		add_sp095_clusters.out.sp100
-			.filter { it[1] == "mags" && it[2] == "non_singletons" }
+			.filter { it[1] == "mags" && it[2] == "non_singleton" }
 			.map { it -> it[0] }
 			.mix(correct_mag_singleton_clustertype.out.sp100_mag_singletons)
 			.collect()
