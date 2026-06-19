@@ -83,6 +83,34 @@ process prepare_spire_genes {
 	"""
 }
 
+process combine_spire_genes_and_contigs {
+	// join gene data with annotated contigs
+	// + reduce size and order by ymag in preparation of addition of sp100/sp095 cluster 
+	// + add Y-cluster information
+	input:
+	path(genes)
+	path(contigs)
+	path(gene_clusters)
+
+	output:
+	path("spire_genes_annotated.txt"), emit: genes
+
+	script:
+	"""
+	set -e -o pipefail
+	mkdir -p tmp/
+
+	join -1 2 -2 3 -o 2.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,2.4,2.5,2.6,2.7 ${genes} ${contigs} | awk -v OFS='\\t' '{ printf("%s\\t%s_%s\\t%s_%s\\t%s\\n", \$1, \$9, \$3, \$10, \$3, \$11); }' > genes_with_contigs.txt
+	
+	sort -T tmp/ -k3,3 genes_with_contigs.txt > genes_with_contigs.txt.by_ymag
+
+	join -1 3 -2 1 genes_with_contigs.txt.by_ymag ${gene_clusters} | tr " " "\t" > spire_genes_annotated.txt
+
+	rm -fv genes_with_contigs.txt genes_with_contigs.txt.by_ymag
+	"""
+
+}
+
 // process prepare_spire_bins {
 // 	// sort SPIRE bin database dump by bin id
 // 	input:
@@ -276,7 +304,7 @@ process merge_mag_clustertypes {
 	path(files)
 
 	output:
-	tuple path("SP100_mag_clusters.tsv"), val("mags"), emit: sp100_mags
+	tuple path("SP100_mag_clusters.tsv"), val("mags"), emit: sp100_magclusters
 	// tuple path("SP100_isolate_clusters.tsv.by_sp100"), val("isolates"), emit: sp100_isolates_bysp100
 	
 	script:
@@ -345,6 +373,11 @@ workflow {
 			.collect()
 	)
 
+	combine_spire_genes_and_contigs(
+		prepare_spire_genes.out.genes,
+		prepare_spire_contigs.out.contigs,
+		merge_mag_clustertypes.out.sp100_magclusters
+	)
 }
 
 
