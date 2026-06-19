@@ -308,7 +308,7 @@ workflow {
 		Channel.fromPath(params.spire_contigs),
 		Channel.fromPath(params.spire_bins),
 		create_contig2ycontig_map.out.ycontig_map,
-		Channel.fromPath(params.speci_info)
+		Channel.fromPath(params.spire_speci_info)
 	)
 
 	prepare_spire_genes(Channel.fromPath(params.spire_genes))
