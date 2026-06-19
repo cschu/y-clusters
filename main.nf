@@ -2,6 +2,11 @@ params.sp100_members = "/g/scb2/bork/ckim/HGT_MGE_project_v3/1.combine_SPIRE/SP1
 params.sp095_members = "/g/scb2/bork/ckim/HGT_MGE_project_v3/2.linclust/SP095/SP095_members.tsv"
 params.contig_map = "/g/scb2/bork/ckim/HGT_MGE_project_v3/data/SPIRE_contig_mapping.tsv"
 
+params.spire_bins = "/g/bork6/schudoma/projects/mge/y_spire_bins.txt.bin_data"
+params.spire_contigs = "/g/bork6/schudoma/projects/mge/spire_contigs.txt.y"
+params.spire_genes = "/g/bork6/schudoma/projects/mge/spire_genes.txt.y10k"
+
+
 process create_contig2ycontig_map {
 	input:
 	path(contig_data)
@@ -17,6 +22,57 @@ process create_contig2ycontig_map {
 	awk -v OFS='\\t' '{ printf("%s:%s\\t%s\\n", \$1, \$2, \$3); }' ${contig_data} | sort -T tmp/ -k1,1 > contig2ycontig.txt
 	"""
 }
+
+process prepare_spire_contigs {
+	// sort SPIRE contig database dump by SPIRE bin id
+	// # bin_id, contig_id, kmer_size, ordinal
+	// # 100008	1653229156	141	100713
+	input:
+	path(contigs)
+
+	output:
+	path("spire_contigs.txt"), emit: contigs
+
+	script:
+	"""
+	set -e -o pipefail
+	mkdir -p tmp/
+
+	awk -v OFS='\\t' '{ printf("%s\\t%s\\tk%s_%s\\n", \$1, \$2, \$3, \$4); }' ${contigs} > contigs.small
+	sort -T tmp/ -k1,1 contigs.small > spire_contigs.txt
+	"""
+}
+
+process prepare_spire_genes {
+	// sort SPIRE gene database dump by contig id
+	input:
+	path(genes)
+
+	output:
+	path("spire_genes.txt"), emit: genes
+
+	script:
+	"""
+	sort -T tmp/ -k2,2 ${genes} > spire_genes.txt
+	"""
+}
+
+process prepare_spire_bins {
+	// sort SPIRE bin database dump by bin id
+	input:
+	path(bins)
+
+	output:
+	path("spire_bins.txt"), emit: bins
+
+	script:
+	"""
+	sort -T tmp/ -k1,1 ${bins} > spire_bins.txt
+	"""
+}
+
+
+
 
 
 process preprocess_sp100 {
@@ -218,8 +274,10 @@ workflow {
 	contig_data_ch = Channel.fromPath(params.contig_map)
 	create_contig2ycontig_map(contig_data_ch)
 
-
-
+	prepare_spire_bins(Channel.fromPath(params.spire_bins))
+	prepare_spire_contigs(Channel.fromPath(params.spire_contigs))
+	prepare_spire_genes(Channel.fromPath(params.spire_genes))
+	
 
 	add_sp095_clusters(
 		preprocess_sp095.out.sp095.combine(split_by_clustersize.out.non_singletons.mix(split_by_clustersize.out.singletons)),		
