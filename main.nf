@@ -40,6 +40,8 @@ process prepare_spire_contigs {
 
 	awk -v OFS='\\t' '{ printf("%s\\t%s\\tk%s_%s\\n", \$1, \$2, \$3, \$4); }' ${contigs} > contigs.small
 	sort -T tmp/ -k1,1 contigs.small > spire_contigs.txt
+
+	rm -fv contigs.small
 	"""
 }
 
@@ -53,6 +55,9 @@ process prepare_spire_genes {
 
 	script:
 	"""
+	set -e -o pipefail
+	mkdir -p tmp/
+
 	sort -T tmp/ -k2,2 ${genes} > spire_genes.txt
 	"""
 }
@@ -67,6 +72,9 @@ process prepare_spire_bins {
 
 	script:
 	"""
+	set -e -o pipefail
+	mkdir -p tmp/
+	
 	sort -T tmp/ -k1,1 ${bins} > spire_bins.txt
 	"""
 }
@@ -277,7 +285,7 @@ workflow {
 	prepare_spire_bins(Channel.fromPath(params.spire_bins))
 	prepare_spire_contigs(Channel.fromPath(params.spire_contigs))
 	prepare_spire_genes(Channel.fromPath(params.spire_genes))
-	
+
 
 	add_sp095_clusters(
 		preprocess_sp095.out.sp095.combine(split_by_clustersize.out.non_singletons.mix(split_by_clustersize.out.singletons)),		
