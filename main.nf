@@ -376,7 +376,7 @@ workflow {
 	combine_spire_genes_and_contigs(
 		prepare_spire_genes.out.genes,
 		prepare_spire_contigs.out.contigs,
-		merge_mag_clustertypes.out.sp100_magclusters
+		merge_mag_clustertypes.out.sp100_magclusters.map { it -> it[0] }
 	)
 }
 
