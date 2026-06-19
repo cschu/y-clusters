@@ -6,13 +6,16 @@ params.spire_bins = "/g/bork6/schudoma/projects/mge/y_spire_bins.txt.bin_data"
 params.spire_contigs = "/g/bork6/schudoma/projects/mge/spire_contigs.txt.y"
 params.spire_genes = "/g/bork6/schudoma/projects/mge/spire_genes.txt.y10k"
 
+params.spire_speci_info = "/g/bork6/tmp/schudoma/promge2_recovery/pg3_sp95/spire_speci_info.txt"
+
+
 
 process create_contig2ycontig_map {
 	input:
 	path(contig_data)
 
 	output:
-	path("contig2ycontig.txt")
+	path("contig2ycontig.txt"), emit: ycontig_map
 
 	script:
 	"""
@@ -27,8 +30,18 @@ process prepare_spire_contigs {
 	// sort SPIRE contig database dump by SPIRE bin id
 	// # bin_id, contig_id, kmer_size, ordinal
 	// # 100008	1653229156	141	100713
+	// add SPIRE bin data to contig data
+	// generate joint-keys for adding in Y-MAG contig ids
+	// add Y-MAG contig ids
+	// sort contigs by SPIRE bin name
+	// add specI to contigs
+	// sort contigs by contig
+	
 	input:
 	path(contigs)
+	path(bins)
+	path(ycontig_map)
+	path(speci_info)
 
 	output:
 	path("spire_contigs.txt"), emit: contigs
@@ -39,9 +52,17 @@ process prepare_spire_contigs {
 	mkdir -p tmp/
 
 	awk -v OFS='\\t' '{ printf("%s\\t%s\\tk%s_%s\\n", \$1, \$2, \$3, \$4); }' ${contigs} > contigs.small
-	sort -T tmp/ -k1,1 contigs.small > spire_contigs.txt
+	sort -T tmp/ -k1,1 contigs.small > contigs.txt
 
-	rm -fv contigs.small
+	sort -T tmp/ -k1,1 ${bins} > bins.txt
+
+	join -1 1 -2 1 -a 1 contigs.txt bins.txt | awk -v OFS='\\t' '{ printf("%s:%s\\t%s\\n", gensub(/.psa_megahit.psb_metabat2.[0-9]{5}\$/, "", "g", \$4), \$3, \$0); }' | sort -T tmp -k1,1 > contigs_with_bins.txt
+	
+	join -1 1 -2 1 contigs_with_bins.txt ${ycontig_map} | tr " " "\\t" | cut -f 2- | sort -T tmp/ -k4,4 > contigs_with_bins.with_ycontig.txt
+
+	join -1 4 -2 1 contigs_with_bins.with_ycontig.txt ${speci_info} | tr " " "\\t" | sort -T tmp/ -k3,3 > spire_contigs.txt
+
+	rm -fv contigs.small contigs.txt bins.txt contigs_with_bins.txt contigs_with_bins.with_ycontig.txt
 	"""
 }
 
@@ -62,22 +83,22 @@ process prepare_spire_genes {
 	"""
 }
 
-process prepare_spire_bins {
-	// sort SPIRE bin database dump by bin id
-	input:
-	path(bins)
+// process prepare_spire_bins {
+// 	// sort SPIRE bin database dump by bin id
+// 	input:
+// 	path(bins)
 
-	output:
-	path("spire_bins.txt"), emit: bins
+// 	output:
+// 	path("spire_bins.txt"), emit: bins
 
-	script:
-	"""
-	set -e -o pipefail
-	mkdir -p tmp/
-	
-	sort -T tmp/ -k1,1 ${bins} > spire_bins.txt
-	"""
-}
+// 	script:
+// 	"""
+// 	set -e -o pipefail
+// 	mkdir -p tmp/
+
+// 	sort -T tmp/ -k1,1 ${bins} > spire_bins.txt
+// 	"""
+// }
 
 
 
@@ -282,10 +303,15 @@ workflow {
 	contig_data_ch = Channel.fromPath(params.contig_map)
 	create_contig2ycontig_map(contig_data_ch)
 
-	prepare_spire_bins(Channel.fromPath(params.spire_bins))
-	prepare_spire_contigs(Channel.fromPath(params.spire_contigs))
-	prepare_spire_genes(Channel.fromPath(params.spire_genes))
+	// prepare_spire_bins(Channel.fromPath(params.spire_bins))
+	prepare_spire_contigs(
+		Channel.fromPath(params.spire_contigs),
+		Channel.fromPath(params.spire_bins),
+		create_contig2ycontig_map.out.ycontig_map,
+		Channel.fromPath(params.speci_info)
+	)
 
+	prepare_spire_genes(Channel.fromPath(params.spire_genes))
 
 	add_sp095_clusters(
 		preprocess_sp095.out.sp095.combine(split_by_clustersize.out.non_singletons.mix(split_by_clustersize.out.singletons)),		
