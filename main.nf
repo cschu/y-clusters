@@ -335,13 +335,12 @@ process merge_mag_clustertypes {
 }
 
 process generate_spire_speci_clusters {
-	cpus 4
-
+	
 	input:
 	path(genes)
 
 	output:
-	path("speci/*.txt"), emit: speci_clusters
+	tuple val("spire"), path("speci/"), emit: speci_clusters
 
 	script:
 	"""
@@ -349,20 +348,16 @@ process generate_spire_speci_clusters {
 	mkdir -p tmp/ speci/
 
 	sort -T tmp/ -k4,4 ${genes} | awk -v OFS='\\t' 'BEGIN { s=""; f=""; } { if (s!=\$4) { if (s!="") { close(f); }; s=\$4; f=sprintf("speci/specI_v4_%05d.txt.1", s); } print \$0 >> f; } END { close(f); }'
-
-	# sort by sp095 cluster
-	ls speci/*.1 | xargs -I{} -P${task.cpus} sh -c 'echo {}; sort -T tmp/ -k6,6 -k1,1 {} > speci/\$(basename {} .1); rm -fv {};'
 	"""
 }
 
 process generate_pg3_speci_clusters {
-	cpus 4
-
+	
 	input:
 	path(genes)
 
 	output:
-	path("speci/*.txt"), emit: speci_clusters
+	tuple val("pg3"), path("speci/"), emit: speci_clusters
 
 	script:
 	"""
@@ -370,12 +365,27 @@ process generate_pg3_speci_clusters {
 	mkdir -p tmp/ speci/
 
 	sort -k5,5 -k1,1 -T tmp/ ${genes} | awk -v OFS='\\t' 'BEGIN { s=""; f=""; } NF>4 { if (s!=\$5) { if (s!="") { close(f); }; s=\$5; f=sprintf("speci/specI_v4_%05d.txt.1", s); } print \$0 >> f; } END { close(f); }'
-
-	# sort by sp095 cluster
-	ls speci/*.1 | xargs -I{} -P${task.cpus} sh -c 'echo {}; sort -T tmp/ -k6,6 -k1,1 {} > speci/\$(basename {} .1); rm -fv {};'
 	"""
 }
 
+process sort_speci_clusters {
+	cpus 4
+
+	input:
+	tuple val(genome_type), path(clusters)
+
+	output:
+	tuple val(genome_type), path("speci/${genome_type}/"), emit: sorted_clusters
+
+	script:
+	"""
+	set -e -o pipefail
+	mkdir -p tmp/ speci/${genome_type}/
+
+	# sort by sp095 cluster
+	ls speci/*.1 | xargs -I{} -P${task.cpus} sh -c 'echo {}; sort -T tmp/ -k6,6 -k1,1 {} > speci/${genome_type}/\$(basename {} .1); rm -fv {};'
+	"""
+}
 
 
 workflow {
@@ -446,6 +456,11 @@ workflow {
 
 	generate_spire_speci_clusters(combine_spire_genes_and_contigs.out.genes)
 	generate_pg3_speci_clusters(add_speci_to_isolates.out.genes)
+
+	sort_speci_clusters(
+		generate_pg3_speci_clusters.out.speci_clusters
+			.mix(generate_spire_speci_clusters.out.speci_clusters)
+	)
 }
 
 
