@@ -7,7 +7,7 @@ params.spire_contigs = "/g/bork6/schudoma/projects/mge/spire_contigs.txt.y"
 params.spire_genes = "/g/bork6/schudoma/projects/mge/spire_genes.txt.y10k"
 
 params.spire_speci_info = "/g/bork6/tmp/schudoma/promge2_recovery/spire_speci_info.txt.gene_with_speci"
-
+params.pg3_speci_info = "/g/bork6/tmp/schudoma/promge2_recovery/pg3_speci_info.txt.gene_with_speci"
 
 
 process create_contig2ycontig_map {
@@ -110,6 +110,8 @@ process combine_spire_genes_and_contigs {
 	"""
 
 }
+
+
 
 // process prepare_spire_bins {
 // 	// sort SPIRE bin database dump by bin id
@@ -272,6 +274,22 @@ process merge_isolate_clustertypes {
 	"""
 }
 
+process add_speci_to_isolates {
+	input:
+	path(isolates)
+	path(speci_info)
+
+	output:
+	path("pg3_genes_annotated.txt")
+
+	script:
+	"""
+	join -1 1 -2 1 -a 1 -o 1.2,1.3,1.4,1.5,2.2 <(awk -v OFS='\\t' '{print gensub(/_[0-9]+\$/,"","g",\$1),\$0}' ${isolates}) ${speci_info} | tr " " "\\t" > pg3_genes_annotated.txt
+	"""
+
+
+}
+
 process correct_mag_singleton_clustertype {
 	input:
 	tuple path(mag_singletons), path(isolate_clusters_bysp100)
@@ -350,6 +368,11 @@ workflow {
 			.filter { it[1] == "isolates" }
 			.map { it -> it[0] }
 			.collect()
+	)
+
+	add_speci_to_isolates(
+		merge_isolate_clustertypes.out.sp100_isolates,
+		Channel.fromPath(params.pg3_speci_info)
 	)
 
 	mag_singletons_ch = add_sp095_clusters.out.sp100
