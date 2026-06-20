@@ -445,7 +445,7 @@ workflow {
 	)
 
 	generate_spire_speci_clusters(combine_spire_genes_and_contigs.out.genes)
-	generate_pg3_speci_clusters(add_speci_to_isolates.out)
+	generate_pg3_speci_clusters(add_speci_to_isolates.out.genes)
 }
 
 
