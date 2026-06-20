@@ -371,7 +371,7 @@ workflow {
 	)
 
 	add_speci_to_isolates(
-		merge_isolate_clustertypes.out.sp100_isolates,
+		merge_isolate_clustertypes.out.sp100_isolates.map { it -> it[0] },
 		Channel.fromPath(params.pg3_speci_info)
 	)
 
