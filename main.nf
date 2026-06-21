@@ -375,7 +375,7 @@ process sort_speci_clusters {
 	tuple val(genome_type), path(clusters)
 
 	output:
-	tuple val(genome_type), path("speci/${genome_type}/"), emit: sorted_clusters
+	tuple val(genome_type), path("speci/${genome_type}/*.txt"), emit: sorted_clusters
 
 	script:
 	"""
@@ -493,11 +493,12 @@ workflow {
 			.mix(generate_spire_speci_clusters.out.speci_clusters)
 	)
 
-	pg3_speci_clusters_ch = Channel.fromPath(
-		sort_speci_clusters.out.sorted_clusters
-			.filter { it[0] == "isolates" }
-			.map { it -> it[1] }	
-	)
+	pg3_speci_clusters_ch = sort_speci_clusters.out.sorted_clusters
+		.filter { it[0] == "isolates" }
+		.map { it -> it[1] }
+		.flatten()
+		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), file ] }
+
 	pg3_speci_clusters_ch.dump(pretty: true, tag: "pg3_speci_clusters_ch")
 		
 
