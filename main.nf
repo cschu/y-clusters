@@ -387,6 +387,37 @@ process sort_speci_clusters {
 	"""
 }
 
+process build_speci_yclusters {
+	input:
+	tuple val("speci"), path("pg3.txt"), path("spire.txt")
+
+	output:
+
+	script:
+	"""
+	set -e -o pipefail
+	mkdir -p tmp/ yclusters/${speci}
+
+	awk -v OFS='\\t' '{print \$1,gensub(/(GCA_[0-9]+)_[0-9]+/, "\\\\1", "g", \$1),\$3 }' pg3.txt > target.tmp
+	awk -v OFS='\\t' '{ printf("%s:%s\\t%s\\t%s\\n", \$1, \$3, \$2, \$6) }' spire.txt >> target.tmp
+
+	n_genomes=\$(cut -f 2 target.tmp | uniq | sort -u | wc -l)
+
+	sort -T tmp/ -k3,3 target.tmp > target.tmp.1 && mv -v target.tmp.1 target.tmp
+
+	cut -f 3 target.tmp | uniq -c | sed "s/^ \\+//" | awk -v OFS='\\t' '{ print \$2,\$1 }' > csizes.tmp
+	sort -T tmp/ -k1,1 csizes.tmp > yclusters/${speci}/${speci}.y095.csizes.txt
+
+	join -1 3 -2 1 -o 1.1,1.2,1.3,2.2 target.tmp yclusters/${speci}/${speci}.csizes.txt | tr " " "\\t" > target.tmp.with_csize
+	mv -v target.tmp.with_csize target.tmp
+
+	awk -v OFS='\\t' -v n=\$n_genomes '!/^GCA/ { split(\$1,gene,":"); printf("%s:%s\\tSP095_%09i\\t%i\\t???\\t%i\\t%.5f\\n", \$2, gene[2], \$3, \$4, n, \$4/(n+0)); }' target.tmp > yclusters/${speci}/${speci}.y095.txt
+	cut -f 2- yclusters/${speci}/${speci}.y095.txt | uniq -c | sed "s/^ \\+//" | awk -v OFS='\\t' '{ print \$2,\$3,\$1,\$5,\$6 }' | sort -T tmp/ -k2,2gr -k1,1 > yclusters/${speci}/${speci}.y095.cluster_info.txt
+
+	rm -fv target.tmp csizes.tmp
+	"""
+}
+
 
 workflow {
 
@@ -461,6 +492,24 @@ workflow {
 		generate_pg3_speci_clusters.out.speci_clusters
 			.mix(generate_spire_speci_clusters.out.speci_clusters)
 	)
+
+	pg3_speci_clusters_ch = Channel.fromPath(
+		sort_speci_clusters.out.sorted_clusters
+			.filter { it[0] == "isolates" }
+			.map { it -> it[1] }	
+	)
+	pg3_speci_clusters_ch.dump(pretty: true, tag: "pg3_speci_clusters_ch")
+		
+
+
+
+	// build_speci_yclusters()
+	// tuple val("speci"), path("pg3.txt"), path("spire.txt")
+	// speci/specI_v4_%05d.txt.1
+	// tuple val(genome_type), path("speci/${genome_type}/"), emit: sorted_clusters
+
+
+
 }
 
 
