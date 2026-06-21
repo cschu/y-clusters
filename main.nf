@@ -340,14 +340,14 @@ process generate_spire_speci_clusters {
 	path(genes)
 
 	output:
-	tuple val("spire"), path("speci/"), emit: speci_clusters
+	tuple val("spire"), path("speci/*.txt"), emit: speci_clusters
 
 	script:
 	"""
 	set -e -o pipefail
 	mkdir -p tmp/ speci/
 
-	sort -T tmp/ -k4,4 ${genes} | awk -v OFS='\\t' 'BEGIN { s=""; f=""; } { if (s!=\$4) { if (s!="") { close(f); }; s=\$4; f=sprintf("speci/specI_v4_%05d.txt.1", s); } print \$0 >> f; } END { close(f); }'
+	sort -T tmp/ -k4,4 ${genes} | awk -v OFS='\\t' 'BEGIN { s=""; f=""; } { if (s!=\$4) { if (s!="") { close(f); }; s=\$4; f=sprintf("speci/specI_v4_%05d.txt", s); } print \$0 >> f; } END { close(f); }'
 	"""
 }
 
@@ -357,35 +357,35 @@ process generate_pg3_speci_clusters {
 	path(genes)
 
 	output:
-	tuple val("pg3"), path("speci/"), emit: speci_clusters
+	tuple val("pg3"), path("speci/*.txt"), emit: speci_clusters
 
 	script:
 	"""
 	set -e -o pipefail
 	mkdir -p tmp/ speci/
 
-	sort -k5,5 -k1,1 -T tmp/ ${genes} | awk -v OFS='\\t' 'BEGIN { s=""; f=""; } NF>4 { if (s!=\$5) { if (s!="") { close(f); }; s=\$5; f=sprintf("speci/specI_v4_%05d.txt.1", s); } print \$0 >> f; } END { close(f); }'
+	sort -k5,5 -k1,1 -T tmp/ ${genes} | awk -v OFS='\\t' 'BEGIN { s=""; f=""; } NF>4 { if (s!=\$5) { if (s!="") { close(f); }; s=\$5; f=sprintf("speci/specI_v4_%05d.txt", s); } print \$0 >> f; } END { close(f); }'
 	"""
 }
 
-process sort_speci_clusters {
-	cpus 4
+// process sort_speci_clusters {
+// 	cpus 4
 
-	input:
-	tuple val(genome_type), path(clusters)
+// 	input:
+// 	tuple val(genome_type), path(clusters)
 
-	output:
-	tuple val(genome_type), path("speci/${genome_type}/*.txt"), emit: sorted_clusters
+// 	output:
+// 	tuple val(genome_type), path("speci/${genome_type}/*.txt"), emit: sorted_clusters
 
-	script:
-	"""
-	set -e -o pipefail
-	mkdir -p tmp/ speci/${genome_type}/
+// 	script:
+// 	"""
+// 	set -e -o pipefail
+// 	mkdir -p tmp/ speci/${genome_type}/
 
-	# sort by sp095 cluster
-	ls speci/*.1 | xargs -I{} -P${task.cpus} sh -c 'echo {}; sort -T tmp/ -k6,6 -k1,1 {} > speci/${genome_type}/\$(basename {} .1); rm -fv {};'
-	"""
-}
+// 	# sort by sp095 cluster
+// 	ls speci/*.1 | xargs -I{} -P${task.cpus} sh -c 'echo {}; sort -T tmp/ -k6,6 -k1,1 {} > speci/${genome_type}/\$(basename {} .1); rm -fv {};'
+// 	"""
+// }
 
 process build_speci_yclusters {
 	input:
@@ -398,8 +398,8 @@ process build_speci_yclusters {
 	set -e -o pipefail
 	mkdir -p tmp/ yclusters/${speci}
 
-	awk -v OFS='\\t' '{print \$1,gensub(/(GCA_[0-9]+)_[0-9]+/, "\\\\1", "g", \$1),\$3 }' pg3.txt > target.tmp
-	awk -v OFS='\\t' '{ printf("%s:%s\\t%s\\t%s\\n", \$1, \$3, \$2, \$6) }' spire.txt >> target.tmp
+	sort -T tmp/ -k6,6 -k1,1 pg3.txt | awk -v OFS='\\t' '{print \$1,gensub(/(GCA_[0-9]+)_[0-9]+/, "\\\\1", "g", \$1),\$3 }' > target.tmp
+	sort -T tmp/ -k6,6 -k1,1 spire.txt | awk -v OFS='\\t' '{ printf("%s:%s\\t%s\\t%s\\n", \$1, \$3, \$2, \$6) }' >> target.tmp
 
 	n_genomes=\$(cut -f 2 target.tmp | uniq | sort -u | wc -l)
 
@@ -488,16 +488,20 @@ workflow {
 	generate_spire_speci_clusters(combine_spire_genes_and_contigs.out.genes)
 	generate_pg3_speci_clusters(add_speci_to_isolates.out.genes)
 
-	sort_speci_clusters(
-		generate_pg3_speci_clusters.out.speci_clusters
-			.mix(generate_spire_speci_clusters.out.speci_clusters)
-	)
-
-	pg3_speci_clusters_ch = sort_speci_clusters.out.sorted_clusters
-		.filter { it[0] == "isolates" }
+	// sort_speci_clusters(
+	// 	generate_pg3_speci_clusters.out.speci_clusters
+	// 		.mix(generate_spire_speci_clusters.out.speci_clusters)
+	// )
+	pg3_speci_clusters_ch = generate_pg3_speci_clusters.out.speci_clusters
 		.map { it -> it[1] }
 		.flatten()
 		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), file ] }
+
+	// pg3_speci_clusters_ch = sort_speci_clusters.out.sorted_clusters
+	// 	.filter { it[0] == "isolates" }
+	// 	.map { it -> it[1] }
+	// 	.flatten()
+	// 	.map { file -> [ file.name.replaceAll(/\.txt$/, ""), file ] }
 
 	pg3_speci_clusters_ch.dump(pretty: true, tag: "pg3_speci_clusters_ch")
 		
