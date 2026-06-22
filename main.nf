@@ -541,6 +541,12 @@ workflow {
 	speci_clusters_ch_spire.dump(pretty: true, tag: "speci_clusters_ch_spire")
 
 
+	speci_clusters_ch = speci_clusters_ch_both
+		.mix(speci_clusters_ch_pg3)
+		.mix(speci_clusters_ch_spire)
+	
+	build_speci_yclusters(speci_clusters_ch)
+
 	// speci_clusters_ch = pg3_speci_clusters_ch
 	// 	.mix(spire_speci_clusters_ch)
 	// 	.groupTuple(by: 0)
