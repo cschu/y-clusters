@@ -408,7 +408,7 @@ process build_speci_yclusters {
 	cut -f 3 target.tmp | uniq -c | sed "s/^ \\+//" | awk -v OFS='\\t' '{ print \$2,\$1 }' > csizes.tmp
 	sort -T tmp/ -k1,1 csizes.tmp > yclusters/${speci}/${speci}.y095.csizes.txt
 
-	join -1 3 -2 1 -o 1.1,1.2,1.3,2.2 target.tmp yclusters/${speci}/${speci}.csizes.txt | tr " " "\\t" > target.tmp.with_csize
+	join -1 3 -2 1 -o 1.1,1.2,1.3,2.2 target.tmp yclusters/${speci}/${speci}.y095.csizes.txt | tr " " "\\t" > target.tmp.with_csize
 	mv -v target.tmp.with_csize target.tmp
 
 	awk -v OFS='\\t' -v n=\$n_genomes '!/^GCA/ { split(\$1,gene,":"); printf("%s:%s\\tSP095_%09i\\t%i\\t???\\t%i\\t%.5f\\n", \$2, gene[2], \$3, \$4, n, \$4/(n+0)); }' target.tmp > yclusters/${speci}/${speci}.y095.txt
