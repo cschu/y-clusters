@@ -528,16 +528,19 @@ workflow {
 		.join(spire_speci_clusters_ch, by: 0)
 	speci_clusters_ch_both.dump(pretty: true, tag: "speci_clusters_ch_both")
 
+	spire_dummy = file("$workDir/spire_dummy.txt")
+	pg3_dummy = file("$workDir/pg3_dummy.txt")
+
 	speci_clusters_ch_pg3 = pg3_speci_clusters_ch
 		.join(spire_speci_clusters_ch, by: 0, remainder: true)
 		.filter { it[2] == null }
-		.map { it -> [ it[0], it[1], file("$workDir/${it[0]}.spire_dummy.txt") ] }
+		.map { it -> [ it[0], it[1], spire_dummy ] }
 	speci_clusters_ch_pg3.dump(pretty: true, tag: "speci_clusters_ch_pg3")
 
 	speci_clusters_ch_spire = spire_speci_clusters_ch
 		.join(pg3_speci_clusters_ch, by: 0, remainder: true)
 		.filter { it[1] == null }
-		.map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[2] ] }
+		.map { it -> [ it[0], pg3_dummy, it[2] ] }
 	speci_clusters_ch_spire.dump(pretty: true, tag: "speci_clusters_ch_spire")
 
 
