@@ -398,8 +398,8 @@ process build_speci_yclusters {
 	set -e -o pipefail
 	mkdir -p tmp/ yclusters/${speci}
 
-	sort -T tmp/ -k6,6 -k1,1 pg3.txt | awk -v OFS='\\t' '{print \$1,gensub(/(GCA_[0-9]+)_[0-9]+/, "\\\\1", "g", \$1),\$3 }' > target.tmp
-	sort -T tmp/ -k6,6 -k1,1 spire.txt | awk -v OFS='\\t' '{ printf("%s:%s\\t%s\\t%s\\n", \$1, \$3, \$2, \$6) }' >> target.tmp
+	sort -T tmp/ -k6,6 -k1,1 pg3.txt | awk -v OFS='\\t' '/^[^#]/ {print \$1,gensub(/(GCA_[0-9]+)_[0-9]+/, "\\\\1", "g", \$1),\$3 }' > target.tmp
+	sort -T tmp/ -k6,6 -k1,1 spire.txt | awk -v OFS='\\t' '/^[^#]/ { printf("%s:%s\\t%s\\t%s\\n", \$1, \$3, \$2, \$6) }' >> target.tmp
 
 	n_genomes=\$(cut -f 2 target.tmp | uniq | sort -u | wc -l)
 
@@ -529,7 +529,9 @@ workflow {
 	speci_clusters_ch_both.dump(pretty: true, tag: "speci_clusters_ch_both")
 
 	spire_dummy = file("$workDir/spire_dummy.txt")
+	spire_dummy.text("# NOTHING TO SEE")
 	pg3_dummy = file("$workDir/pg3_dummy.txt")
+	pg3_dummy.text("# NOTHING TO SEE")
 
 	speci_clusters_ch_pg3 = pg3_speci_clusters_ch
 		.join(spire_speci_clusters_ch, by: 0, remainder: true)
