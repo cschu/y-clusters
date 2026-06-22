@@ -518,7 +518,7 @@ workflow {
 		.mix(
 			spire_speci_clusters_ch.map { it -> [ it[0], it[2] ] }
 				.join(pg3_speci_clusters_ch.map { it -> [ it[0], it[2] ] }, by: 0, remainder: true)
-				.filter { it[3] == null }
+				.filter { it[1] == null }
 				// .map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[2] ] }
 				.map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[1] ] }
 		)
