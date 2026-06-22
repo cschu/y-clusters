@@ -495,12 +495,12 @@ workflow {
 	pg3_speci_clusters_ch = generate_pg3_speci_clusters.out.speci_clusters
 		.map { it -> it[1] }
 		.flatten()
-		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), file ] }
+		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), "pg3", file ] }
 
 	spire_speci_clusters_ch = generate_spire_speci_clusters.out.speci_clusters
 		.map { it -> it[1] }
 		.flatten()
-		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), file ] }
+		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), "spire", file ] }
 
 	// pg3_speci_clusters_ch = sort_speci_clusters.out.sorted_clusters
 	// 	.filter { it[0] == "isolates" }
@@ -511,7 +511,11 @@ workflow {
 	pg3_speci_clusters_ch.dump(pretty: true, tag: "pg3_speci_clusters_ch")
 	spire_speci_clusters_ch.dump(pretty: true, tag: "spire_speci_clusters_ch")
 		
-
+	speci_clusters_ch = pg3_speci_clusters_ch
+		.mix(spire_speci_clusters_ch)
+		.groupTuple(by: 0)
+	
+	speci_clusters_ch.dump(pretty: true, tag: "speci_clusters_ch")
 
 
 	// build_speci_yclusters()
