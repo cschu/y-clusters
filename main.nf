@@ -524,13 +524,18 @@ workflow {
 	// 			// .map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[2] ] }
 	// 			.map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[1] ] }
 	// 	)
-	speci_clusters_ch_both = pg3_speci_clusters_ch.join(spire_speci_clusters_ch, by: 0)
+	speci_clusters_ch_both = pg3_speci_clusters_ch
+		.join(spire_speci_clusters_ch, by: 0)
 	speci_clusters_ch_both.dump(pretty: true, tag: "speci_clusters_ch_both")
 
-	speci_clusters_ch_pg3 = pg3_speci_clusters_ch.join(spire_speci_clusters_ch, by: 0, remainder: true)
+	speci_clusters_ch_pg3 = pg3_speci_clusters_ch
+		.join(spire_speci_clusters_ch, by: 0, remainder: true)
+		.filter { it[2] == null }
 	speci_clusters_ch_pg3.dump(pretty: true, tag: "speci_clusters_ch_pg3")
 
-	speci_clusters_ch_spire = spire_speci_clusters_ch.join(pg3_speci_clusters_ch, by: 0, remainder: true)
+	speci_clusters_ch_spire = spire_speci_clusters_ch
+		.join(pg3_speci_clusters_ch, by: 0, remainder: true)
+		.filter { it[1] == null }
 	speci_clusters_ch_spire.dump(pretty: true, tag: "speci_clusters_ch_spire")
 
 
