@@ -529,9 +529,9 @@ workflow {
 	speci_clusters_ch_both.dump(pretty: true, tag: "speci_clusters_ch_both")
 
 	spire_dummy = file("$workDir/spire_dummy.txt")
-	spire_dummy.text("# NOTHING TO SEE")
+	spire_dummy.text = "# NOTHING TO SEE"
 	pg3_dummy = file("$workDir/pg3_dummy.txt")
-	pg3_dummy.text("# NOTHING TO SEE")
+	pg3_dummy.text = "# NOTHING TO SEE"
 
 	speci_clusters_ch_pg3 = pg3_speci_clusters_ch
 		.join(spire_speci_clusters_ch, by: 0, remainder: true)
