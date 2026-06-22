@@ -513,12 +513,13 @@ workflow {
 
 	speci_clusters_ch = pg3_speci_clusters_ch
 		.join(spire_speci_clusters_ch, by: 0, remainder: true)
-		// .map { it -> [ it[0], it[2], (it[4] == null) ? file("$workDir/${it[0]}.spire_dummy.txt"): it[4] ] }
-		// .mix(
-		// 	spire_speci_clusters_ch
-		// 		.join(pg3_speci_clusters_ch, by: 0, remainder: true)
-		// 		.filter { }
-		// )
+		.map { it -> [ it[0], it[2], (it[3] == null) ? file("$workDir/${it[0]}.spire_dummy.txt") : it[4] ] }
+		.mix(
+			spire_speci_clusters_ch
+				.join(pg3_speci_clusters_ch, by: 0, remainder: true)
+				.filter { it[3] == null }
+				.map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[2] ] }
+		)
 
 
 	// speci_clusters_ch = pg3_speci_clusters_ch
