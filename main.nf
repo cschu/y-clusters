@@ -495,12 +495,14 @@ workflow {
 	pg3_speci_clusters_ch = generate_pg3_speci_clusters.out.speci_clusters
 		.map { it -> it[1] }
 		.flatten()
-		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), "pg3", file ] }
+		// .map { file -> [ file.name.replaceAll(/\.txt$/, ""), "pg3", file ] }
+		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), file ] }
 
 	spire_speci_clusters_ch = generate_spire_speci_clusters.out.speci_clusters
 		.map { it -> it[1] }
 		.flatten()
-		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), "spire", file ] }
+		// .map { file -> [ file.name.replaceAll(/\.txt$/, ""), "spire", file ] }
+		.map { file -> [ file.name.replaceAll(/\.txt$/, ""), file ] }
 
 	// pg3_speci_clusters_ch = sort_speci_clusters.out.sorted_clusters
 	// 	.filter { it[0] == "isolates" }
@@ -511,17 +513,22 @@ workflow {
 	pg3_speci_clusters_ch.dump(pretty: true, tag: "pg3_speci_clusters_ch")
 	spire_speci_clusters_ch.dump(pretty: true, tag: "spire_speci_clusters_ch")
 
-	speci_clusters_ch = pg3_speci_clusters_ch.map { it -> [ it[0], it[2] ] }
-		.join(spire_speci_clusters_ch.map { it -> [ it[0], it[2] ] }, by: 0, remainder: true)
-		// .map { it -> [ it[0], it[2], (it[3] == null) ? file("$workDir/${it[0]}.spire_dummy.txt") : it[4] ] }
-		.map { it -> [ it[0], it[1], (it[2] == null) ? file("$workDir/${it[0]}.spire_dummy.txt") : it[2] ] }
-		.mix(
-			spire_speci_clusters_ch.map { it -> [ it[0], it[2] ] }
-				.join(pg3_speci_clusters_ch.map { it -> [ it[0], it[2] ] }, by: 0, remainder: true)
-				.filter { it[2] == null }
-				// .map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[2] ] }
-				.map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[1] ] }
-		)
+	// speci_clusters_ch = pg3_speci_clusters_ch.map { it -> [ it[0], it[2] ] }
+	// 	.join(spire_speci_clusters_ch.map { it -> [ it[0], it[2] ] }, by: 0, remainder: true)
+	// 	// .map { it -> [ it[0], it[2], (it[3] == null) ? file("$workDir/${it[0]}.spire_dummy.txt") : it[4] ] }
+	// 	.map { it -> [ it[0], it[1], (it[2] == null) ? file("$workDir/${it[0]}.spire_dummy.txt") : it[2] ] }
+	// 	.mix(
+	// 		spire_speci_clusters_ch.map { it -> [ it[0], it[2] ] }
+	// 			.join(pg3_speci_clusters_ch.map { it -> [ it[0], it[2] ] }, by: 0, remainder: true)
+	// 			.filter { it[2] == null }
+	// 			// .map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[2] ] }
+	// 			.map { it -> [ it[0], file("$workDir/${it[0]}.pg3_dummy.txt"), it[1] ] }
+	// 	)
+	speci_clusters_ch_both = pg3_speci_clusters_ch.join(spire_speci_clusters_ch, by: 0)
+
+	speci_clusters_ch_pg3 = pg3_speci_clusters_ch.join(spire_speci_clusters_ch, by: 0, remainder: true)
+
+	speci_clusters_ch_spire = spire_speci_clusters_ch.join(pg3_speci_clusters_ch, by: 0, remainder: true)
 
 
 	// speci_clusters_ch = pg3_speci_clusters_ch
